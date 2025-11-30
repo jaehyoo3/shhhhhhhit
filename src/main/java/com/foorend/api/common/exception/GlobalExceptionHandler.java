@@ -11,7 +11,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -35,23 +34,6 @@ public class GlobalExceptionHandler {
         response.setStatus(httpStatus);
 
         return new BaseRes(ex.getErrorCode());
-    }
-
-    /**
-     * 정적 리소스 없음 처리 (favicon.ico, .well-known 등 브라우저 자동 요청)
-     */
-    @ExceptionHandler(NoResourceFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public BaseRes handleNoResourceFoundException(NoResourceFoundException ex, HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        
-        // 브라우저 자동 요청은 DEBUG 레벨로 무시
-        if (uri.contains("favicon.ico") || uri.contains(".well-known")) {
-            log.debug("Browser auto-request ignored: {}", uri);
-        } else {
-            log.warn("Static resource not found: {}", uri);
-        }
-        return new BaseRes(ErrorCode.INTERNAL_ERR);
     }
 
     /**

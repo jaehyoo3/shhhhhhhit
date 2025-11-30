@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="slotEntry">
+
+    <resultMap id="slotEntryResultMap" type="SlotEntry">
+        <id property="entryId" column="entry_id"/>
+        <result property="slotId" column="slot_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="status" column="status"/>
+        <result property="cancelReason" column="cancel_reason"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- slotEntry.findBySlotIdAndUserId: 모임-유저 참여 정보 조회 -->
+    <select id="findBySlotIdAndUserId" parameterType="map" resultMap="slotEntryResultMap">
+        SELECT entry_id, slot_id, user_id, status, cancel_reason, created_at, updated_at
+        FROM slot_entries
+        WHERE slot_id = #{slotId}
+          AND user_id = #{userId}
+    </select>
+
+    <!-- slotEntry.existsBySlotIdAndUserId: 이미 가입했는지 확인 (JOINED만) -->
+    <select id="existsBySlotIdAndUserId" parameterType="map" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM slot_entries
+            WHERE slot_id = #{slotId}
+              AND user_id = #{userId}
+              AND status = 'JOINED'
+        )
+    </select>
+
+    <!-- slotEntry.findCanceledEntry: 취소했던 레코드 조회 -->
+    <select id="findCanceledEntry" parameterType="map" resultMap="slotEntryResultMap">
+        SELECT entry_id, slot_id, user_id, status, cancel_reason, created_at, updated_at
+        FROM slot_entries
+        WHERE slot_id = #{slotId}
+          AND user_id = #{userId}
+          AND status = 'CANCELED'
+        LIMIT 1
+    </select>
+
+    <!-- slotEntry.rejoin: 취소했던 모임 재가입 (CANCELED → JOINED) -->
+    <update id="rejoin" parameterType="map">
+        UPDATE slot_entries
+        SET status = 'JOINED',
+            cancel_reason = NULL,
+            updated_at = NOW()
+        WHERE slot_id = #{slotId}
+          AND user_id = #{userId}
+          AND status = 'CANCELED'
+    </update>
+
+    <!-- slotEntry.insert: 모임 가입 -->
+    <insert id="insert" parameterType="SlotEntry" useGeneratedKeys="true" keyProperty="entryId">
+        INSERT INTO slot_entries (
+            slot_id, user_id, status
+        ) VALUES (
+            #{slotId}, #{userId}, #{status}
+        )
+    </insert>
+
+    <!-- slotEntry.cancel: 모임 참여 취소 -->
+    <update id="cancel" parameterType="map">
+        UPDATE slot_entries
+        SET status = 'CANCELED',
+            cancel_reason = #{cancelReason},
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND status IN ('JOINED', 'LATE')
+          AND slot_id IN (
+              SELECT slot_id FROM meeting_slots
+              WHERE status = 'OPEN'
+          )
+    </update>
+
+    <!-- slotEntry.setLate: 늦어요 상태로 변경 -->
+    <update id="setLate" parameterType="map">
+        UPDATE slot_entries
+        SET status = 'LATE',
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND status = 'JOINED'
+          AND slot_id IN (
+              SELECT slot_id FROM meeting_slots
+              WHERE status IN ('OPEN', 'CONFIRMED')
+          )
+    </update>
+
+    <!-- slotEntry.countLateBySlotId: 해당 모임의 늦어요 인원 수 -->
+    <select id="countLateBySlotId" parameterType="Long" resultType="int">
+        SELECT COUNT(*)
+        FROM slot_entries
+        WHERE slot_id = #{slotId}
+          AND status = 'LATE'
+    </select>
+
+    <!-- slotEntry.findMyJoinedSlotId: 내가 참여 중인 모임 ID (JOINED 또는 LATE) -->
+    <select id="findMyJoinedSlotId" parameterType="Long" resultType="Long">
+        SELECT e.slot_id
+        FROM slot_entries e
+        INNER JOIN meeting_slots s ON e.slot_id = s.slot_id
+        WHERE e.user_id = #{userId}
+          AND e.status IN ('JOINED', 'LATE')
+          AND s.status IN ('OPEN', 'CONFIRMED')
+        ORDER BY s.meet_date ASC, s.meet_time ASC
+        LIMIT 1
+    </select>
+
+    <!-- slotEntry.findMyActiveEntry: 내가 참여 중인 모임 조회 (JOINED 또는 LATE) -->
+    <select id="findMyActiveEntry" parameterType="Long" resultType="map">
+        SELECT 
+            e.entry_id,
+            e.slot_id,
+            e.status AS entry_status,
+            s.location_area,
+            s.meet_date,
+            s.meet_time,
+            r.restaurant_name,
+            r.restaurant_addr
+        FROM slot_entries e
+        INNER JOIN meeting_slots s ON e.slot_id = s.slot_id
+        LEFT JOIN restaurants r ON s.confirmed_restaurant_id = r.restaurant_id
+        WHERE e.user_id = #{userId}
+          AND e.status IN ('JOINED', 'LATE')
+          AND s.status IN ('OPEN', 'CONFIRMED')
+        ORDER BY s.meet_date ASC, s.meet_time ASC
+        LIMIT 1
+    </select>
+
+    <!-- slotEntry.findMembersBySlotId: 모임 참석자 직업카테고리/국적 조회 (중복 제거) -->
+    <select id="findMembersBySlotId" parameterType="Long" resultType="map">
+        SELECT DISTINCT u.job_category, u.nationality
+        FROM slot_entries e
+        INNER JOIN users u ON e.user_id = u.user_id
+        WHERE e.slot_id = #{slotId}
+          AND e.status IN ('JOINED', 'LATE')
+          AND (u.job_category IS NOT NULL OR u.nationality IS NOT NULL)
+    </select>
+
+</mapper>
+

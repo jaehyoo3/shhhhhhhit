@@ -14,6 +14,7 @@ public enum ErrorCode {
     SUCCESS(0, "성공"),
     INTERNAL_ERR(9999, "시스템 오류가 발생했습니다."),
     INVALID_PARAMETER(1001, "잘못된 파라미터입니다."),
+    INVALID_PARAM(1001, "잘못된 파라미터입니다."),
     NO_DATA(998, "조회된 데이터가 없습니다."),
     DUPLICATION_ERROR(1002, "중복된 데이터가 존재합니다."),
 

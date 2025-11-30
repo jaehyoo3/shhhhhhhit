@@ -69,9 +69,9 @@ public class User {
     private String nationality = "KR";
 
     /**
-     * 직종
+     * 직업 카테고리
      */
-    private String jobTitle;
+    private JobCategory jobCategory;
 
     /**
      * 회원 상태
@@ -94,5 +94,6 @@ public class User {
      */
     private LocalDateTime updatedAt;
 }
+
 
 

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -39,14 +40,13 @@ public class SwaggerConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .info(apiInfo());
     }
 
     private Info apiInfo() {
         Contact contact = new Contact()
-                .name("foodinko")
-                .url("https://www.foodinko.com/?lang=ko")
-                .email("hi@foodinko.com");
+                .name("foodinko");
 
         return new Info()
                 .title("foodinko API")
@@ -74,11 +74,4 @@ public class SwaggerConfig {
         };
     }
 
-    @Bean
-    public GroupedOpenApi allApiGroup() {
-        return GroupedOpenApi.builder()
-                .group("all-apis")
-                .pathsToMatch("/**") // 모든 경로를 포함하도록 변경
-                .build();
-    }
 }

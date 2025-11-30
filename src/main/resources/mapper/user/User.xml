@@ -14,7 +14,7 @@
         <result property="profileImageUrl" column="profile_image_url"/>
         <result property="relationshipStatus" column="relationship_status"/>
         <result property="nationality" column="nationality"/>
-        <result property="jobTitle" column="job_title"/>
+        <result property="jobCategory" column="job_category"/>
         <result property="userStatus" column="user_status"/>
         <result property="refreshToken" column="refresh_token"/>
         <result property="createdAt" column="created_at"/>
@@ -24,7 +24,7 @@
     <!-- user.findByEmail: 이메일로 사용자 조회 -->
     <select id="findByEmail" parameterType="String" resultMap="userResultMap">
         SELECT user_id, google_id, email, name, phone_number, gender, birthday,
-               profile_image_url, relationship_status, nationality, job_title,
+               profile_image_url, relationship_status, nationality, job_category,
                user_status, refresh_token, created_at, updated_at
         FROM users
         WHERE email = #{email}
@@ -33,7 +33,7 @@
     <!-- user.findByGoogleId: 구글 ID로 사용자 조회 -->
     <select id="findByGoogleId" parameterType="String" resultMap="userResultMap">
         SELECT user_id, google_id, email, name, phone_number, gender, birthday,
-               profile_image_url, relationship_status, nationality, job_title,
+               profile_image_url, relationship_status, nationality, job_category,
                user_status, refresh_token, created_at, updated_at
         FROM users
         WHERE google_id = #{googleId}
@@ -42,7 +42,7 @@
     <!-- user.findByUserId: 사용자 ID로 조회 -->
     <select id="findByUserId" parameterType="Long" resultMap="userResultMap">
         SELECT user_id, google_id, email, name, phone_number, gender, birthday,
-               profile_image_url, relationship_status, nationality, job_title,
+               profile_image_url, relationship_status, nationality, job_category,
                user_status, refresh_token, created_at, updated_at
         FROM users
         WHERE user_id = #{userId}
@@ -52,11 +52,11 @@
     <insert id="insertUser" parameterType="User" useGeneratedKeys="true" keyProperty="userId">
         INSERT INTO users (
             google_id, email, name, phone_number, gender, birthday,
-            profile_image_url, relationship_status, nationality, job_title,
+            profile_image_url, relationship_status, nationality, job_category,
             user_status, refresh_token
         ) VALUES (
             #{googleId}, #{email}, #{name}, #{phoneNumber}, #{gender}, #{birthday},
-            #{profileImageUrl}, #{relationshipStatus}, #{nationality}, #{jobTitle},
+            #{profileImageUrl}, #{relationshipStatus}, #{nationality}, #{jobCategory},
             #{userStatus}, #{refreshToken}
         )
     </insert>
@@ -86,7 +86,7 @@
     <!-- user.findByRefreshToken: Refresh Token으로 사용자 조회 -->
     <select id="findByRefreshToken" parameterType="String" resultMap="userResultMap">
         SELECT user_id, google_id, email, name, phone_number, gender, birthday,
-               profile_image_url, relationship_status, nationality, job_title,
+               profile_image_url, relationship_status, nationality, job_category,
                user_status, refresh_token, created_at, updated_at
         FROM users
         WHERE refresh_token = #{refreshToken}
@@ -102,6 +102,24 @@
         WHERE user_id = #{userId}
     </select>
 
+    <!-- user.findProfileByUserId: 사용자 프로필 상세 조회 -->
+    <select id="findProfileByUserId" parameterType="Long" resultType="UserProfileResponse">
+        SELECT u.user_id AS userId,
+               u.email,
+               u.name,
+               u.phone_number AS phoneNumber,
+               u.gender,
+               u.birthday,
+               u.profile_image_url AS profileImageUrl,
+               u.relationship_status AS relationshipStatus,
+               u.nationality,
+               u.job_category AS jobCategory,
+               ut.answers AS traitsAnswers
+        FROM users u
+        LEFT JOIN user_traits ut ON u.user_id = ut.user_id
+        WHERE u.user_id = #{userId}
+    </select>
+
     <!-- user.updateBasicInfo: 사용자 기본정보 업데이트 -->
     <update id="updateBasicInfo" parameterType="map">
         UPDATE users
@@ -111,9 +129,35 @@
             birthday = #{birthday},
             relationship_status = #{relationshipStatus},
             nationality = #{nationality},
-            job_title = #{jobTitle},
+            job_category = #{jobCategory},
             updated_at = NOW()
         WHERE user_id = #{userId}
+    </update>
+
+    <!-- user.updateProfile: 사용자 프로필 부분 업데이트 (PATCH) -->
+    <update id="updateProfile" parameterType="map">
+        UPDATE users
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="phoneNumber != null">phone_number = #{phoneNumber},</if>
+            <if test="relationshipStatus != null">relationship_status = #{relationshipStatus},</if>
+            <if test="jobCategory != null">job_category = #{jobCategory},</if>
+            <if test="nationality != null">nationality = #{nationality},</if>
+            updated_at = NOW()
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- user.withdraw: 회원 탈퇴 처리 (Soft Delete) -->
+    <update id="withdraw" parameterType="map">
+        UPDATE users
+        SET email = NULL,
+            google_id = NULL,
+            refresh_token = NULL,
+            user_status = 'WITHDRAWAL',
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND user_status = 'ACTIVE'
     </update>
 
 </mapper>

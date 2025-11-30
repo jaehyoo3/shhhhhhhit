@@ -22,6 +22,12 @@ public class GlobalException extends RuntimeException {
         this.sendMailFlag = sendMailFlag;
     }
 
+    public GlobalException(ErrorCode errorCode, String customMessage) {
+        super(customMessage);
+        this.errorCode = errorCode;
+        this.sendMailFlag = false;
+    }
+
     public GlobalException(String errorMessage) {
         this(errorMessage, false);
     }

@@ -54,19 +54,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .formLogin(formLogin -> formLogin.disable())
-                
-                // H2 콘솔을 위한 X-Frame-Options 설정
-                .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
-                )
-                
                 // 세션 사용 안 함 (JWT 기반)
                 .sessionManagement(session -> 
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 
                 // 요청 권한 설정
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/h2-console/**").permitAll()
 //                        .requestMatchers(PUBLIC_API_PATHS).permitAll()
 //                        .requestMatchers(SWAGGER_PATHS).permitAll()
                         .anyRequest().permitAll()

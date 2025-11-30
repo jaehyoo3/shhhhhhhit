@@ -7,6 +7,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -14,7 +15,7 @@ import org.springframework.context.annotation.Primary;
 import javax.sql.DataSource;
 
 /**
- * MyBatis 설정 (H2 사용)
+ * MainDB MyBatis 설정
  */
 @Slf4j
 @Configuration
@@ -22,26 +23,26 @@ public class MainDBMybatisConfig extends AbstractMybatisConfig {
 
     @Override
     @Primary
-    @Bean(name = "sqlSessionFactory")
-    public SqlSessionFactory dbSqlSessionFactory(DataSource dataSource) throws Exception {
-        SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+    @Bean(name = "mainDBSqlSessionFactory")
+    public SqlSessionFactory dbSqlSessionFactory(@Qualifier("mainDBDataSource") DataSource objDataSource) throws Exception {
+        SqlSessionFactoryBean objSqlSessionFactoryBean = new SqlSessionFactoryBean();
 
-        configureSqlSessionFactory(sqlSessionFactoryBean, dataSource);
+        configureSqlSessionFactory(objSqlSessionFactoryBean, objDataSource);
 
-        log.debug("SqlSessionFactory 생성 완료");
+        log.debug("MainDB SqlSessionFactory 생성 완료");
 
-        return sqlSessionFactoryBean.getObject();
+        return objSqlSessionFactoryBean.getObject();
     }
 
     @Primary
-    @Bean(name = "sqlSession")
-    public SqlSession dbSqlSession(SqlSessionFactory sqlSessionFactory) throws GlobalException {
-        return new SqlSessionTemplate(sqlSessionFactory);
+    @Bean(name = "mainDBSqlSession")
+    public SqlSession dbSqlSession(@Qualifier("mainDBSqlSessionFactory") SqlSessionFactory objSqlSessionFactory) throws GlobalException {
+        return new SqlSessionTemplate(objSqlSessionFactory);
     }
 
     @Primary
-    @Bean(name = "sqlSessionBatch")
-    public SqlSession dbSqlSessionBatch(SqlSessionFactory sqlSessionFactory) throws GlobalException {
-        return new SqlSessionTemplate(sqlSessionFactory, ExecutorType.BATCH);
+    @Bean(name = "mainDBSqlSessionBatch")
+    public SqlSession dbSqlSessionBatch(@Qualifier("mainDBSqlSessionFactory") SqlSessionFactory objSqlSessionFactory) throws GlobalException {
+        return new SqlSessionTemplate(objSqlSessionFactory, ExecutorType.BATCH);
     }
 }

@@ -1,5 +1,7 @@
 package com.foorend.api.common.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foorend.api.common.constants.GlobalConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -282,5 +284,39 @@ public class CommonUtil {
      */
     public static String getCurrentDate() {
         return convertDate(DateFormat.yyyy_MM_dd_HH_mm_ss_SSS, new Date());
+    }
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * Object를 JSON 문자열로 변환
+     */
+    public static String convertToJson(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        // 이미 String이면 그대로 반환
+        if (obj instanceof String) {
+            return (String) obj;
+        }
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON 변환 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * JSON 문자열을 Object로 변환
+     */
+    public static <T> T convertFromJson(String json, Class<T> clazz) {
+        if (json == null || json.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, clazz);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("JSON 파싱 실패: " + e.getMessage(), e);
+        }
     }
 }

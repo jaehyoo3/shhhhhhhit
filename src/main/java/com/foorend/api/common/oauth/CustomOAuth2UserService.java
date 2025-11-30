@@ -3,7 +3,6 @@ package com.foorend.api.common.oauth;
 import com.foorend.api.common.repository.GenericDAO;
 import com.foorend.api.user.domain.User;
 import com.foorend.api.user.domain.UserStatus;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -22,7 +21,6 @@ import java.util.Map;
  * OAuth2 사용자 정보 처리 서비스
  * - Google OAuth2 로그인 시 사용자 정보를 DB에 저장/업데이트
  */
-@Slf4j
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
@@ -43,8 +41,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
         String picture = (String) attributes.get("picture");
-
-        log.info("OAuth2 로그인 시도 - email: {}, googleId: {}", email, googleId);
 
         // 사용자 저장 또는 업데이트
         User user = saveOrUpdate(googleId, email, name, picture);
@@ -76,7 +72,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             params.put("profileImageUrl", picture);
 
             genericDAO.update("user.updateUserProfile", params);
-            log.info("기존 사용자 프로필 업데이트 - userId: {}", existingUser.getUserId());
 
             // 업데이트된 정보 반영
             existingUser.setName(name);
@@ -93,7 +88,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     .build();
 
             genericDAO.insert("user.insertUser", newUser);
-            log.info("신규 사용자 등록 - userId: {}, email: {}", newUser.getUserId(), email);
 
             return newUser;
         }

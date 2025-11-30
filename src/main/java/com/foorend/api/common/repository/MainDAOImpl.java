@@ -15,7 +15,7 @@ public class MainDAOImpl<T,R> implements GenericDAO<T,R> {
     private final SqlSession sqlSession;
     private final SqlSession sqlSessionBatch;
 
-    public MainDAOImpl(@Qualifier("sqlSession") SqlSession sqlSession, @Qualifier("sqlSessionBatch") SqlSession sqlSessionBatch) {
+    public MainDAOImpl(@Qualifier("mainDBSqlSession") SqlSession sqlSession, @Qualifier("mainDBSqlSessionBatch") SqlSession sqlSessionBatch) {
         this.sqlSession      = sqlSession;
         this.sqlSessionBatch = sqlSessionBatch;
     }

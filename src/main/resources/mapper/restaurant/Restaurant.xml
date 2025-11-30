@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="restaurant">
+
+    <!-- ResultMap 정의 -->
+    <resultMap id="restaurantResultMap" type="Restaurant">
+        <id property="restaurantId" column="restaurant_id"/>
+        <result property="restaurantName" column="restaurant_name"/>
+        <result property="restaurantAddr" column="restaurant_addr"/>
+        <result property="locationArea" column="location_area"/>
+        <result property="avgPriceTier" column="avg_price_tier"/>
+        <result property="category" column="category"/>
+    </resultMap>
+
+    <!-- restaurant.findAll: 전체 조회 -->
+    <select id="findAll" resultMap="restaurantResultMap">
+        SELECT restaurant_id, restaurant_name, restaurant_addr, 
+               location_area, avg_price_tier, category
+        FROM restaurants
+        ORDER BY restaurant_id DESC
+    </select>
+
+    <!-- restaurant.findById: 단건 조회 -->
+    <select id="findById" parameterType="Integer" resultMap="restaurantResultMap">
+        SELECT restaurant_id, restaurant_name, restaurant_addr, 
+               location_area, avg_price_tier, category
+        FROM restaurants
+        WHERE restaurant_id = #{restaurantId}
+    </select>
+
+    <!-- restaurant.findByLocationArea: 지역별 조회 -->
+    <select id="findByLocationArea" parameterType="String" resultMap="restaurantResultMap">
+        SELECT restaurant_id, restaurant_name, restaurant_addr, 
+               location_area, avg_price_tier, category
+        FROM restaurants
+        WHERE location_area = #{locationArea}
+        ORDER BY restaurant_id DESC
+    </select>
+
+    <!-- restaurant.insert: 등록 -->
+    <insert id="insert" parameterType="Restaurant" useGeneratedKeys="true" keyProperty="restaurantId">
+        INSERT INTO restaurants (
+            restaurant_name, restaurant_addr, location_area, avg_price_tier, category
+        ) VALUES (
+            #{restaurantName}, #{restaurantAddr}, #{locationArea}, #{avgPriceTier}, #{category}
+        )
+    </insert>
+
+    <!-- restaurant.update: 수정 -->
+    <update id="update" parameterType="Restaurant">
+        UPDATE restaurants
+        SET restaurant_name = #{restaurantName},
+            restaurant_addr = #{restaurantAddr},
+            location_area = #{locationArea},
+            avg_price_tier = #{avgPriceTier},
+            category = #{category}
+        WHERE restaurant_id = #{restaurantId}
+    </update>
+
+    <!-- restaurant.delete: 삭제 -->
+    <delete id="delete" parameterType="Integer">
+        DELETE FROM restaurants WHERE restaurant_id = #{restaurantId}
+    </delete>
+
+    <!-- restaurant.isReferencedByMeeting: 모임에서 참조 중인지 확인 -->
+    <select id="isReferencedByMeeting" parameterType="Integer" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM meeting_slots 
+            WHERE confirmed_restaurant_id = #{restaurantId}
+        )
+    </select>
+
+</mapper>
+

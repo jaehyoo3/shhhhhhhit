@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="meetingSlot">
+
+    <!-- ResultMap 정의 -->
+    <resultMap id="meetingSlotResultMap" type="MeetingSlot">
+        <id property="slotId" column="slot_id"/>
+        <result property="confirmedRestaurantId" column="confirmed_restaurant_id"/>
+        <result property="locationArea" column="location_area"/>
+        <result property="meetDate" column="meet_date"/>
+        <result property="meetTime" column="meet_time"/>
+        <result property="maxCapacity" column="max_capacity"/>
+        <result property="currentCount" column="current_count"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <!-- meetingSlot.findUpcoming: 예정된 모임 조회 (모임 시간까지 표출, 정원 미달만) -->
+    <select id="findUpcoming" resultMap="meetingSlotResultMap">
+        SELECT slot_id, confirmed_restaurant_id, location_area, 
+               meet_date, meet_time, max_capacity, current_count, status, created_at
+        FROM meeting_slots
+        WHERE CONCAT(meet_date, ' ', meet_time) >= NOW()
+          AND status IN ('OPEN', 'CONFIRMED')
+          AND (max_capacity IS NULL OR current_count &lt; max_capacity)
+        ORDER BY meet_date ASC, meet_time ASC
+    </select>
+
+    <!-- meetingSlot.findById: 단건 조회 -->
+    <select id="findById" parameterType="Long" resultMap="meetingSlotResultMap">
+        SELECT slot_id, confirmed_restaurant_id, location_area, 
+               meet_date, meet_time, max_capacity, current_count, status, created_at
+        FROM meeting_slots
+        WHERE slot_id = #{slotId}
+    </select>
+
+    <!-- meetingSlot.findByLocationArea: 지역별 예정 모임 조회 (정원 미달만) -->
+    <select id="findByLocationArea" parameterType="String" resultMap="meetingSlotResultMap">
+        SELECT slot_id, confirmed_restaurant_id, location_area, 
+               meet_date, meet_time, max_capacity, current_count, status, created_at
+        FROM meeting_slots
+        WHERE location_area = #{locationArea}
+          AND CONCAT(meet_date, ' ', meet_time) >= NOW()
+          AND status IN ('OPEN', 'CONFIRMED')
+          AND (max_capacity IS NULL OR current_count &lt; max_capacity)
+        ORDER BY meet_date ASC, meet_time ASC
+    </select>
+
+    <!-- meetingSlot.insert: 등록 -->
+    <insert id="insert" parameterType="MeetingSlot" useGeneratedKeys="true" keyProperty="slotId">
+        INSERT INTO meeting_slots (
+            confirmed_restaurant_id, location_area, meet_date, meet_time, max_capacity, current_count, status
+        ) VALUES (
+            #{confirmedRestaurantId}, #{locationArea}, #{meetDate}, #{meetTime}, #{maxCapacity}, #{currentCount}, #{status}
+        )
+    </insert>
+
+    <!-- meetingSlot.update: 수정 -->
+    <update id="update" parameterType="MeetingSlot">
+        UPDATE meeting_slots
+        SET confirmed_restaurant_id = #{confirmedRestaurantId},
+            location_area = #{locationArea},
+            meet_date = #{meetDate},
+            meet_time = #{meetTime},
+            max_capacity = #{maxCapacity},
+            current_count = #{currentCount},
+            status = #{status}
+        WHERE slot_id = #{slotId}
+    </update>
+
+    <!-- meetingSlot.incrementCount: 예약 인원 증가 -->
+    <update id="incrementCount" parameterType="Long">
+        UPDATE meeting_slots
+        SET current_count = current_count + 1
+        WHERE slot_id = #{slotId}
+          AND (max_capacity IS NULL OR current_count &lt; max_capacity)
+    </update>
+
+    <!-- meetingSlot.decrementCount: 예약 인원 감소 -->
+    <update id="decrementCount" parameterType="Long">
+        UPDATE meeting_slots
+        SET current_count = current_count - 1
+        WHERE slot_id = #{slotId}
+          AND current_count > 0
+    </update>
+
+    <!-- meetingSlot.existsBySchedule: 같은 지역/날짜/시간 존재 여부 -->
+    <select id="existsBySchedule" parameterType="map" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM meeting_slots 
+            WHERE location_area = #{locationArea}
+              AND meet_date = #{meetDate}
+              AND meet_time = #{meetTime}
+        )
+    </select>
+
+    <!-- meetingSlot.confirmOrCancelIfStarted: 모임 시작 시간 되면 CONFIRMED 또는 CANCELED -->
+    <update id="confirmIfStarted" parameterType="Long">
+        UPDATE meeting_slots
+        SET status = 'CONFIRMED'
+        WHERE slot_id = #{slotId}
+          AND CONCAT(meet_date, ' ', meet_time) &lt;= NOW()
+          AND status = 'OPEN'
+          AND current_count > 0
+    </update>
+
+    <update id="cancelIfStarted" parameterType="Long">
+        UPDATE meeting_slots
+        SET status = 'CANCELED'
+        WHERE slot_id = #{slotId}
+          AND CONCAT(meet_date, ' ', meet_time) &lt;= NOW()
+          AND status = 'OPEN'
+          AND current_count = 0
+    </update>
+
+    <!-- meetingSlot.finishIfExpired: 시작 + 12시간 후 FINISHED 처리 -->
+    <update id="finishIfExpired" parameterType="Long">
+        UPDATE meeting_slots
+        SET status = 'FINISHED'
+        WHERE slot_id = #{slotId}
+          AND DATE_ADD(CONCAT(meet_date, ' ', meet_time), INTERVAL 12 HOUR) &lt; NOW()
+          AND status = 'CONFIRMED'
+    </update>
+
+</mapper>
+

@@ -43,6 +43,12 @@ public class BaseGenericListRes<T> extends BaseRes {
         this.totalCount = totalCount;
     }
 
+    public void setSuccessResultData(List<T> data){
+        this.setSuccess();
+        this.data = data;
+        this.totalCount = data != null ? data.size() : 0;
+    }
+
     public void setNoData(){
         this.setNoData(); // BaseRes의 setNoData() 호출
         this.totalCount = 0;
