@@ -25,7 +25,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
-    
+
     // OAuth2 관련
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
@@ -54,31 +54,38 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .formLogin(formLogin -> formLogin.disable())
+
+                // H2 콘솔을 위한 X-Frame-Options 설정
+                .headers(headers -> headers
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
+                )
+
                 // 세션 사용 안 함 (JWT 기반)
-                .sessionManagement(session -> 
+                .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                
+
                 // 요청 권한 설정
                 .authorizeHttpRequests(authorize -> authorize
+                                .requestMatchers("/h2-console/**").permitAll()
 //                        .requestMatchers(PUBLIC_API_PATHS).permitAll()
 //                        .requestMatchers(SWAGGER_PATHS).permitAll()
-                        .anyRequest().permitAll()
+                                .anyRequest().permitAll()
                 )
-                
+
                 // OAuth2 로그인 설정
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> 
+                        .userInfoEndpoint(userInfo ->
                                 userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler(oAuth2FailureHandler)
                 )
-                
+
                 // 예외 처리
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler)
                 )
-                
+
                 // JWT 필터 등록
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
