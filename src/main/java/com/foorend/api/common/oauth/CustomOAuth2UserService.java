@@ -42,12 +42,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String name = (String) attributes.get("name");
         String picture = (String) attributes.get("picture");
 
-        // 사용자 저장 또는 업데이트
-        User user = saveOrUpdate(googleId, email, name, picture);
+        // 사용자 저장 또는 업데이트 (신규 회원 여부 판단)
+        UserSaveResult result = saveOrUpdate(googleId, email, name, picture);
 
-        // attributes에 userId 추가 (SuccessHandler에서 사용)
+        // attributes에 userId와 신규 회원 여부 추가 (SuccessHandler에서 사용)
         Map<String, Object> modifiedAttributes = new HashMap<>(attributes);
-        modifiedAttributes.put("userId", user.getUserId());
+        modifiedAttributes.put("userId", result.user().getUserId());
+        modifiedAttributes.put("isNewUser", result.isNewUser());
 
         return new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
@@ -57,10 +58,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     /**
+     * 사용자 저장 또는 업데이트 결과
+     */
+    private record UserSaveResult(User user, boolean isNewUser) {}
+
+    /**
      * 사용자 저장 또는 업데이트
      */
     @SuppressWarnings("unchecked")
-    private User saveOrUpdate(String googleId, String email, String name, String picture) {
+    private UserSaveResult saveOrUpdate(String googleId, String email, String name, String picture) {
         // 이메일로 기존 사용자 조회
         User existingUser = (User) genericDAO.selectOne("user.findByEmail", email);
 
@@ -76,7 +82,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             // 업데이트된 정보 반영
             existingUser.setName(name);
             existingUser.setProfileImageUrl(picture);
-            return existingUser;
+            return new UserSaveResult(existingUser, false);
         } else {
             // 신규 사용자 등록
             User newUser = User.builder()
@@ -89,7 +95,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
             genericDAO.insert("user.insertUser", newUser);
 
-            return newUser;
+            return new UserSaveResult(newUser, true);
         }
     }
 }
